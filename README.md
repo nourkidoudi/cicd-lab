@@ -1,69 +1,73 @@
-# CI/CD Lab Starter
+# cicd-lab : CI/CD avec GitHub Actions et Render
 
-A small Express and TypeScript app for the CI/CD Crash Course. Use this starting point to follow along with automated testing, GitHub Actions, and deployment to Render.
+TP3 du Master DevOps & Cloud Computing (ISET Tozeur).
+Une petite application Express/TypeScript, vérifiée automatiquement par **GitHub Actions** et déployée sur **Render** uniquement si la CI passe.
 
-The starter includes a home page, a health endpoint, and a passing health endpoint test. You will add the combined `verify` script, GitHub Actions workflow, and version endpoint during the course.
+## Liens
 
-## Requirements
+- Dépôt GitHub : https://github.com/nourkidoudi/cicd-lab
+- Production (Render) : https://cicd-lab-248i.onrender.com
+- Health check : https://cicd-lab-248i.onrender.com/api/health
+- Version : https://cicd-lab-248i.onrender.com/api/version
 
-- Node.js 24 and npm
-- Git
-- GitHub and Render accounts for the deployment sections
+## Application
 
-## Get started
+| Route | Réponse |
+|---|---|
+| `/` | Page d'accueil HTML |
+| `/api/health` | `{"status":"ok"}` (HTTP 200) |
+| `/api/version` | `{"version":"development"}` (ou `APP_VERSION` si défini) |
 
-Clone the starter into a new folder:
+## Scripts npm
+
+| Commande | Rôle |
+|---|---|
+| `npm run dev` | Serveur de développement (`tsx watch`) |
+| `npm run typecheck` | Vérification des types (`tsc --noEmit`) |
+| `npm test` | Tests (`node --test`) |
+| `npm run build` | Compilation TypeScript vers `dist/` |
+| `npm start` | Lance `dist/server.js` |
+| `npm run verify` | typecheck + test + build, enchaînés |
+
+## Lancer en local
 
 ```bash
-git clone https://github.com/bradtraversy/cicd-lab-starter.git cicd-lab
-cd cicd-lab
+node --version   # Node.js 24 requis
 npm ci
+npm run dev      # http://localhost:3000
+npm run verify
 ```
 
-Start the development server:
+## Pipeline CI/CD
 
-```bash
-npm run dev
+```
+Branche feature -> Pull request vers main -> GitHub Actions (Verify)
+                                                 |
+                      Verify rouge : merge bloqué (ruleset "Protect main")
+                      Verify vert  : merge possible
+                                                 |
+                              Merge dans main -> nouveau run Verify
+                                                 |
+                      Render déploie (Auto-Deploy : After CI Checks Pass)
 ```
 
-Open [localhost:3000](http://localhost:3000). The [health endpoint](http://localhost:3000/api/health) returns HTTP 200 with:
+- **Workflow** : `.github/workflows/ci.yml` (job `Verify`, Node 24, `npm ci` puis `npm run verify`).
+- **Ruleset** `Protect main` : pull request obligatoire, check `Verify` obligatoire, bypass vide.
+- **Render** : Build `npm ci && npm run build`, Start `npm start`, Health Check `/api/health`, Auto-Deploy `After CI Checks Pass`, Pull Request Previews activés.
 
-```json
-{"status":"ok"}
-```
+## Captures d'écran
 
-Stop the server with Ctrl+C.
+| Étape | Capture |
+|---|---|
+| Premier déploiement Render + `/api/health` | ![render-first-deploy](captures/render-first-deploy.png) |
+| Job Verify réussi dans GitHub Actions | ![actions-verify-pass](captures/actions-verify-pass.png) |
+| Auto-Deploy : After CI Checks Pass | ![render-auto-deploy](captures/render-auto-deploy.png) |
+| Ruleset Protect main | ![ruleset-protect-main](captures/ruleset-protect-main.png) |
+| Page d'accueil mise à jour | ![homepage-updated](captures/homepage-updated.png) |
+| PR avec Verify en échec et merge bloqué | ![pr-failing-verify](captures/pr-failing-verify.png) |
+| Réponse de `/api/version` | ![api-version](captures/api-version.png) |
+| Preview vs production | ![preview-vs-production](captures/preview-vs-production.png) |
 
-## Scripts
+## Rapport
 
-- `npm run dev`: start the development server with automatic restarts.
-- `npm run typecheck`: check TypeScript without generating output.
-- `npm test`: run the health endpoint test. The test starts and stops its own server.
-- `npm run build`: compile the app into `dist`.
-- `npm start`: run the compiled app after building it.
-
-## Start your own repository
-
-From inside your newly cloned `cicd-lab` folder, remove the starter's Git history and remote connection, then initialize your own repository. This preserves the app files.
-
-These commands use Bash or Zsh. On Windows, use Git Bash.
-
-```bash
-rm -rf .git
-git init -b main
-git add .
-git commit -m "feat: add CI/CD lab starter"
-```
-
-Create an empty `cicd-lab` repository on GitHub without a README, license, or gitignore. Replace `YOUR_USERNAME` below with your GitHub username:
-
-```bash
-git remote add origin https://github.com/YOUR_USERNAME/cicd-lab.git
-git push -u origin main
-```
-
-Continue with the course to add verification and deployment. Keep `package-lock.json` committed; dependencies, build output, and environment files are excluded by `.gitignore`.
-
-## Configuration
-
-The server uses port `3000` unless `PORT` is set. The home page displays `APP_VERSION`, defaulting to `development`. Neither variable is required to run the starter locally.
+Voir [REPORT.md](REPORT.md).
